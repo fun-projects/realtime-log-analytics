@@ -1,32 +1,33 @@
+var config = require('./config.json');
 var fs = require('fs');
-var HashMap = require('hashmap');
-
+var cassandra = require('cassandra-driver');
 var arguments = process.argv.slice(2);
-var lastReadLine = new HashMap();
-var readStreamObj =  new HashMap();
+var server_name = "server1";
 
 if(arguments.length != 1){
-	process.stdout.write("usage node nodebot <dir/filename>\n");
+	process.stdout.write("usage node nodebot <filename>\n");
 	process.exit();
 }
-var path = arguments[0];
-fs.watch(path, function (event, filename) {
-    if (filename) {
-		if(readStreamObj.get(filename)){
-			console.log('file name exits in hashmap');
-			console.log(readStreamObj.get(filename));
-		}else{
-			readStreamObj.set(filename,fs.createReadStream(path+filename,{autoClose:false}));
-			readStreamObj.get(filename)
-			.on('end', function() {
+var file_path = arguments[0];
 
-			})
-			.on('data', function(chunk) {
-				console.log(chunk.toString());
-				readStreamObj.get(filename).pause();
+
+var last_read_line = 0;
+var client = new cassandra.Client({contactPoints: config.contactPoints.split(" "),keyspace: config.key_space});
+
+var query = 'INSERT INTO '+config.table_name+' (log_id,log_text) VALUES(?,?)';
+
+fs.watchFile(file_path, function () {
+	fs.createReadStream(file_path)
+	.on('data', function(chunk) {
+		var read_data = chunk.toString().split("\n").slice(last_read_line);
+		for(d in read_data){
+			var params = [new Date().toISOString(),read_data[d]];
+			client.execute(query,params, function (err, result) {
+				if(err)
+					console.log(err);
 			});
+			console.log(read_data[d]);
 		}
-    } else {
-        console.log('filename not provided');
-    }
+		last_read_line += read_data.length;
+	});
 });

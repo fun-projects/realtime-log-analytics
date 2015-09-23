@@ -15,5 +15,8 @@
   "bugs": {
     "url": "https://github.com/fun-projects/realtime-log-analytics/issues"
   },
-  "homepage": "https://github.com/fun-projects/realtime-log-analytics"
+  "homepage": "https://github.com/fun-projects/realtime-log-analytics",
+  "dependencies": {
+    "cassandra-driver": "^2.2.1"
+  }
 }
